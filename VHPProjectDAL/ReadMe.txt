@@ -1,0 +1,1 @@
+﻿dotnet ef dbcontext scaffold "server=DESKTOP-OI7KVCP;Port=3306;user=root;password=Anil@6996;database=vhp_projdb" Pomelo.EntityFrameworkCore.MySql -o DataModel -f --context MasterProjContext --no-pluralize
