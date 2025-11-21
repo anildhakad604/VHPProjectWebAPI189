@@ -154,9 +154,7 @@
 //}
 
 
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Logging;
 using Microsoft.IdentityModel.Tokens;
@@ -170,7 +168,6 @@ using VHPProjectDAL.AutoMapperProfile;
 using VHPProjectDAL.DataModel;
 using VHPProjectDAL.Helper;
 using VHPProjectWebAPI.Helper.Authentication;
-using VHPProjectWebAPI.Helper.Authorization;
 
 namespace VHPProjectWebAPI
 {
@@ -186,47 +183,32 @@ namespace VHPProjectWebAPI
 
         public IConfiguration Configuration { get; }
 
+
+
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddCors();
             services.AddControllers().AddNewtonsoftJson();
 
-            services.AddMvc();
+            // Register HttpContextAccessor once
+            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+
+
             services.AddAutoMapper(typeof(MapperProfileDeclaration));
 
 
-            //        services.AddSwaggerGen(c =>
-            //        {
-            //            c.SwaggerDoc("v1", new OpenApiInfo { Title = "VHP Project API", Version = "v1" });
+            // Register FileStorageSettings (fixes DI error)
+            var fileStorageConfig = new FileStorageSettings();
+            Configuration.GetSection("FileStorageSettings").Bind(fileStorageConfig);
+            services.AddSingleton(fileStorageConfig);
 
+            services.AddDbContext<MasterProjContext>(options =>
+            {
+                var connectionString = Configuration.GetConnectionString("DefaultConnection");
+                options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+            });
 
-            //            c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-            //            {
-            //                Name = "Authorization",
-            //                Type = SecuritySchemeType.ApiKey,
-            //                Scheme = "Bearer",
-            //                BearerFormat = "JWT",
-            //                In = ParameterLocation.Header,
-            //                Description = "Enter your JWT token here. Example: Bearer {your token}"
-            //            });
-
-
-            //            c.AddSecurityRequirement(new OpenApiSecurityRequirement
-            //{
-            //            {
-            //                new OpenApiSecurityScheme
-            //                {
-            //                    Reference = new OpenApiReference
-            //                    {
-            //                        Type = ReferenceType.SecurityScheme,
-            //                        Id = "Bearer"
-            //                    }
-            //                },
-            //                new string[] {}
-            //            }
-            //});
-            //        });
-
+            // Swagger configuration (only once)
             services.AddSwaggerGen(options =>
             {
                 options.SwaggerDoc("v1", new OpenApiInfo
@@ -234,7 +216,8 @@ namespace VHPProjectWebAPI
                     Title = "My API",
                     Version = "v1"
                 });
-                //jwt token
+
+                // JWT Token scheme
                 var jwtSecurityScheme = new OpenApiSecurityScheme
                 {
                     BearerFormat = "JWT",
@@ -249,12 +232,14 @@ namespace VHPProjectWebAPI
                         Type = ReferenceType.SecurityScheme
                     }
                 };
+
                 options.AddSecurityDefinition("Bearer", jwtSecurityScheme);
                 options.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-                {jwtSecurityScheme, new List<string>() }
-    });
-                //custom token
+        {
+            { jwtSecurityScheme, new List<string>() }
+        });
+
+                // Custom static token
                 var customSecurityScheme = new OpenApiSecurityScheme
                 {
                     BearerFormat = "SHA256",
@@ -269,96 +254,52 @@ namespace VHPProjectWebAPI
                         Id = "CustomToken"
                     }
                 };
+
                 options.AddSecurityDefinition("CustomToken", customSecurityScheme);
                 options.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-                {customSecurityScheme, new List<string>() }
-    });
+        {
+            { customSecurityScheme, new List<string>() }
+        });
             });
-
-
-
-
 
             IdentityModelEventSource.ShowPII = true;
 
-           
+            // Load app settings
             AppsettingsConfig appSettings = LoadConfiguration(services);
             _appSettings = appSettings;
 
+            // Configure services/repositories
             var serviceRegistry = new ServiceRegistry();
-
-            
             serviceRegistry.ConfigureDataContext(services, appSettings);
             serviceRegistry.ConfigureDependencies(services, appSettings);
 
-           
-
-
-            services.AddAuthorization(options =>
+            // Authentication
+            services.AddAuthentication(options =>
             {
-                // Admin Policies
-                options.AddPolicy(Policies.AddSatsang, policy =>
-                    policy.Requirements.Add(new PermissionRequirement(Policies.AddSatsang)));
-
-                options.AddPolicy(Policies.DeleteMember, policy =>
-                    policy.Requirements.Add(new PermissionRequirement(Policies.DeleteMember)));
-
-                options.AddPolicy(Policies.AddMember, policy =>
-                    policy.Requirements.Add(new PermissionRequirement(Policies.AddMember)));
-
-                // Member Policies
-                options.AddPolicy(Policies.UpdateMember, policy =>
-                    policy.Requirements.Add(new PermissionRequirement(Policies.UpdateMember)));
-            });
-
-            // Register the custom permission handler
-            services.AddScoped<IAuthorizationHandler, PermissionHandler>();
-
-
-
-            // Add Swagger (optional)
-            services.AddEndpointsApiExplorer();
-            services.AddSwaggerGen();
-
-
-            services.AddAuthentication(
-                    options =>
-                    {
-                        options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-                    })
-                    .AddJwtBearer("Bearer", options =>
-                    {
-                        options.TokenValidationParameters = new TokenValidationParameters
-                        {
-                            ValidateIssuer = true,
-                            ValidIssuer = Configuration["Jwt:Issuer"],
-                            ValidateAudience = true,
-                            ValidAudience = Configuration["Jwt:Audience"],
-                            ValidateLifetime = true,
-                            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["Jwt:Key"])),
-                            ValidateIssuerSigningKey = true
-                        };
-                    }).AddScheme<CustomTokenAuthenticationOptions, CustomTokenAuthenticationHandler>("CustomTokenScheme", options => { })
-;
-
-
-            services.AddDbContext<MasterProjContext>(options =>
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer("Bearer", options =>
             {
-                var connectionString = Configuration.GetConnectionString("DefaultConnection");
-                options.UseMySql(connectionString, ServerVersion.Parse("8.0.44-mysql"));
-            });
-
-
-            //var connectionString = Configuration.GetConnectionString("DefaultConnection");
-            //services.AddDbContext<MasterProjContext>(options =>
-            //    options.UseSqlServer(connectionString));
-
-           
-
-
-            // Add other repositories/services here as needed
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = Configuration["Jwt:Issuer"],
+                    ValidateAudience = true,
+                    ValidAudience = Configuration["Jwt:Audience"],
+                    ValidateLifetime = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(
+                        Encoding.UTF8.GetBytes(Configuration["Jwt:Key"])
+                    ),
+                    ValidateIssuerSigningKey = true
+                };
+            })
+            .AddScheme<CustomTokenAuthenticationOptions, CustomTokenAuthenticationHandler>(
+                "CustomTokenScheme",
+                options => { }
+            );
         }
+
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public async void Configure(IApplicationBuilder app, IWebHostEnvironment env)

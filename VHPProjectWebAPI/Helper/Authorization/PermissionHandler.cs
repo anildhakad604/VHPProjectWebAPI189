@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using VHPProjectDAL.Repository.MemberRepo;
+using VHPProjectDAL.MemberRepo;
 
 namespace VHPProjectWebAPI.Helper.Authorization
 {

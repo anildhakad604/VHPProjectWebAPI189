@@ -18,7 +18,7 @@ namespace VHPProjectWebAPI.Controllers
         public MemberController(IMemberService memberService, ILoggerManager loggerManager)
         {
             _memberService = memberService;
-            _loggerManager= loggerManager;
+            _loggerManager = loggerManager;
 
         }
 
@@ -105,7 +105,7 @@ namespace VHPProjectWebAPI.Controllers
         [HttpGet("GetMemberDetails")]
         public async Task<IActionResult> GetMemberDetailsAsync()
         {
-
+            
             var memberIdClaim = User.Claims.FirstOrDefault(c => c.Type == "MemberId")?.Value;
 
             if (string.IsNullOrEmpty(memberIdClaim))
@@ -113,16 +113,21 @@ namespace VHPProjectWebAPI.Controllers
 
             int memberId = int.Parse(memberIdClaim);
 
+            
+            var result = await _memberService.GetMemberAsync(memberId);
 
-            var member = await _memberService.GetMemberByIdAsync(memberId);
+            
+            if (!result.IsSuccessful && result.IsBusinessError)
+                return NotFound(result.Message);
 
-            if (member == null)
-                return NotFound("Member not found.");
+            
+            if (!result.IsSuccessful && result.IsSystemError)
+                return StatusCode(500, result.SystemErrorMessage);
 
-            return Ok(member);
-
-
+           
+            return Ok(result.Data);
         }
+
 
         [HttpPost("AddMember")]
         [Authorize(Policy = Policies.AddMember)]
@@ -179,6 +184,91 @@ namespace VHPProjectWebAPI.Controllers
             var fileBytes = await _memberService.GenerateMemberExcelAsync(villageMasterId, talukaMasterId);
             return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Members.xlsx");
         }
+
+
+        [HttpPost("upload")]
+        public async Task<IActionResult> Upload([FromForm] IFormFile[] files, [FromForm] string pathName)
+        {
+            var result = await _memberService.UploadFilesAsync(files, pathName);
+            return Ok(result);
+        }
+
+        [HttpPost("delete")]
+        public async Task<IActionResult> Delete([FromBody] FileDeleteRequestDTO request)
+        {
+            var result = await _memberService.DeleteFilesAsync(request.FilePath);
+            return Ok(result);
+        }
+
+        [HttpPost("download")]
+        public async Task<IActionResult> Download([FromBody] List<string> filePaths)
+        {
+            var result = await _memberService.DownloadFilesAsZipAsync(filePaths);
+
+            if (!result.IsSuccessful)
+                return BadRequest(result);
+
+            return File(result.Data, "application/zip", "Files.zip");
+        }
+
+
+        //[HttpPost("upload")]
+        //public async Task<IActionResult> UploadFiles([FromForm] List<IFormFile> files, [FromForm] string pathName)
+        //{
+        //    var result = await _memberService.UploadFilesAsync(files, pathName);
+        //    return Ok(result);
+        //}
+
+        //[HttpPost("delete")]
+        //public IActionResult DeleteFiles([FromBody] DeleteFileDTO dto)
+        //{
+        //    var result = _memberService.DeleteFiles(dto.FilePath);
+        //    return Ok(result);
+        //}
+
+        //[HttpPost("download")]
+        //public async Task<IActionResult> DownloadFiles([FromBody] DeleteFileDTO dto)
+        //{
+        //    var result = await _memberService.DownloadFilesAsZipAsync(dto.FilePath);
+
+        //    if (!result.IsSuccessful || result.Data == null)
+        //        return BadRequest(result);
+
+        //    return File(result.Data, "application/zip", "Files.zip");
+        //}
+
+        //[HttpPost("upload")]
+        //public async Task<IActionResult> UploadFiles([FromForm] List<IFormFile> files, [FromForm] string pathName)
+        //{
+        //    if (files == null || files.Count == 0)
+        //        return BadRequest("No files uploaded.");
+
+        //    var result = await _memberService.UploadFilesAsync(files, pathName);
+
+        //    return Ok(new
+        //    {
+        //        data = result
+        //    });
+        //}
+
+        //[HttpPost("delete")]
+        //public IActionResult DeleteFiles([FromBody] DeleteFileDTO dto)
+        //{
+        //    var response = _memberService.DeleteFiles(dto.FilePath);
+
+        //    return Ok(response);
+        //}
+
+
+
+        //[HttpPost("download")]
+        //public async Task<IActionResult> DownloadFiles([FromBody] List<string> files)
+        //{
+        //    var zipBytes = await _memberService.DownloadFilesAsZipAsync(files);
+
+        //    return File(zipBytes, "application/zip", "Files.zip");
+        //}
+
 
 
 

@@ -1,8 +1,4 @@
 ﻿using NLog;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading;
 
 namespace VHPProjectCommonUtility.Logger
 {
@@ -16,7 +12,7 @@ namespace VHPProjectCommonUtility.Logger
             logger.Debug(message);
         }
 
-        public void LogError(string message, Exception ex)
+        public void LogError(string message,Exception ex)
         {
             message = $"Thread Id: {Thread.CurrentThread.ManagedThreadId}:: {message}";
             logger.Error(message);

@@ -4,7 +4,7 @@ using VHPProjectDAL.DataModel;
 
 namespace VHPProjectBAL.Services.Members
 {
-    public class ExcelService:IExcelService
+    public class ExcelService : IExcelService
     {
         public byte[] GenerateMemberExcelFile(IEnumerable<Member> members)
         {

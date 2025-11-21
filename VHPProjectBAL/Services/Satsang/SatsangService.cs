@@ -1,13 +1,13 @@
 ﻿using VHPProjectCommonUtility.Logger;
 using VHPProjectCommonUtility.Response;
 using VHPProjectDAL.DataModel;
-using VHPProjectDAL.Repository.SatsangRepo;
+using VHPProjectDAL.SatsangRepo;
 using VHPProjectDTOModel.SatsangDTO.request;
 using VHPProjectDTOModel.SatsangDTO.response;
 
 namespace VHPProjectBAL.Services.SatsangService
 {
-    public class SatsangService:ISatsangService
+    public class SatsangService : ISatsangService
     {
         private readonly ISatsangRepository _satsangRepository;
         private readonly ILoggerManager _logger;
@@ -61,7 +61,7 @@ namespace VHPProjectBAL.Services.SatsangService
             }
             catch (Exception ex)
             {
-                _logger.LogError("Error while adding satsang", ex);
+                _logger.LogError("Error while adding satsang",ex);
                 result.IsSuccessful = false;
                 result.Message = "Error while adding satsang.";
                 result.SystemErrorMessage = ex.Message;
@@ -111,7 +111,7 @@ namespace VHPProjectBAL.Services.SatsangService
             }
             catch (Exception ex)
             {
-                _logger.LogError("Error while fetching satsang details", ex);
+                _logger.LogError("Error while fetching satsang details");
                 result.IsSuccessful = false;
                 result.Message = "Error while fetching satsang details.";
                 result.SystemErrorMessage = ex.Message;

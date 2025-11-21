@@ -1,23 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using VHPProjectBAL.Services.VillageMaster;
+﻿using VHPProjectBAL.Services.VillageMaster;
+using VHPProjectCommonUtility.Logger;
 using VHPProjectCommonUtility.Response;
-using VHPProjectDAL.Repository.VillageRepo;
+using VHPProjectDAL.VillageRepo;
 using VHPProjectDTOModel.VillageDTO.request;
 using VHPProjectDTOModel.VillageDTO.response;
 
 namespace VHPProjectBAL.Services.ViilageMaster
 {
-    public class VillageService:IVillageService
+    public class VillageService : IVillageService
     {
         private readonly IVillageRepository _villageRepository;
+        private readonly ILoggerManager _logger;
 
-        public VillageService(IVillageRepository villageRepository)
+        public VillageService(IVillageRepository villageRepository, ILoggerManager logger)
         {
             _villageRepository = villageRepository;
+            _logger = logger;
         }
 
         public async Task<ResultWithDataDTO<VillageListResponse_DTO>> GetActiveVillagesAsync(VillageListRequest_DTO request)
@@ -26,27 +24,54 @@ namespace VHPProjectBAL.Services.ViilageMaster
 
             try
             {
-                var data = await _villageRepository.GetActiveVillagesAsync(request.TalukaMasterId, request.VillageName);
+                _logger.LogInfo("VillageService => GetActiveVillagesAsync invoked.");
 
-                var dto = new VillageListResponse_DTO
+                // Basic Validation
+                if (request == null)
                 {
-                    Villages = data.Select(v => new VillageResponse_DTO
-                    {
-                        VillageMasterId = (int)v.GetType().GetProperty("VillageMasterId")?.GetValue(v)!,
-                        VillageName = v.GetType().GetProperty("VillageName")?.GetValue(v)?.ToString() ?? string.Empty,
-                        TalukaMasterId = (int)v.GetType().GetProperty("TalukaMasterId")?.GetValue(v)!,
-                        TalukaName = v.GetType().GetProperty("TalukaName")?.GetValue(v)?.ToString() ?? string.Empty
-                    }).ToList()
+                    result.IsSuccessful = false;
+                    result.IsBusinessError = true;
+                    result.BusinessErrorMessage = "Invalid request.";
+                    result.Message = "Request cannot be null.";
+
+                    _logger.LogWarn("VillageService => GetActiveVillagesAsync request is null.");
+                    return result;
+                }
+
+                // Fetch data from Repository
+                var data = await _villageRepository.GetActiveVillagesAsync(
+                    request.TalukaMasterId,
+                    request.VillageName
+                );
+
+                // Map to DTO
+                var villageList = data.Select(v => new VillageResponse_DTO
+                {
+                    VillageMasterId = v.VillageMasterId,
+                    VillageName = v.VillageName,
+                    TalukaMasterId = v.TalukaMasterId
+                    
+                }).ToList();
+
+                result.Data = new VillageListResponse_DTO
+                {
+                    Villages = villageList
                 };
 
-                result.Data = dto;
                 result.IsSuccessful = true;
                 result.Message = "Village data fetched successfully.";
+
+                _logger.LogInfo("VillageService => GetActiveVillagesAsync executed successfully.");
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
+                // Log Error
+                _logger.LogError($"Error in VillageService => GetActiveVillagesAsync: {ex.Message}", ex);
+
                 result.IsSuccessful = false;
-                result.Message = $"Error fetching village data: {ex.Message}";
+                result.IsSystemError = true;
+                result.Message = "Error fetching village data.";
+                result.SystemErrorMessage = ex.Message;
             }
 
             return result;

@@ -6,16 +6,17 @@ using VHPProjectBAL.Services.SatsangService;
 using VHPProjectBAL.Services.TalukaMaster;
 using VHPProjectBAL.Services.ViilageMaster;
 using VHPProjectBAL.Services.VillageMaster;
+using VHPProjectBAL.Services.Wall;
 using VHPProjectCommonUtility.Configuration;
 using VHPProjectCommonUtility.Encryption;
 using VHPProjectCommonUtility.Logger;
-using VHPProjectDAL.EmailRepo;
-using VHPProjectDAL.Repository.DesignationRepo;
-using VHPProjectDAL.Repository.MemberRepo;
-using VHPProjectDAL.Repository.OTPRepo;
-using VHPProjectDAL.Repository.SatsangRepo;
-using VHPProjectDAL.Repository.TalukaRepo;
-using VHPProjectDAL.Repository.VillageRepo;
+using VHPProjectDAL.DesignationRepo;
+using VHPProjectDAL.MemberRepo;
+using VHPProjectDAL.OTPRepo;
+using VHPProjectDAL.SatsangRepo;
+using VHPProjectDAL.TalukaRepo;
+using VHPProjectDAL.VillageRepo;
+using VHPProjectDAL.WallRepo;
 
 namespace VHPProjectDAL.Helper
 {
@@ -33,19 +34,18 @@ namespace VHPProjectDAL.Helper
             services.AddScoped<IOTPService, OTPService>();
             services.AddScoped<IMemberService, MemberService>();
             services.AddScoped<IExcelService, ExcelService>();
+            services.AddScoped<IWallService, WallService>();
             #endregion
 
             #region Data Access Layer
-            services.AddScoped<IEmailRepository, EmailRepository>();
+            //services.AddScoped<IEmailRepository, EmailRepository>();
             services.AddScoped<IDesignationRepository, DesignationRepository>();
             services.AddScoped<ISatsangRepository, SatsangRepository>();
             services.AddScoped<IVillageRepository, VillageRepository>();
             services.AddScoped<IOTPRepository, OTPRepository>();
             services.AddScoped<ITalukaRepository, TalukaRepository>();
             services.AddScoped<IMemberRepository, MemberRepository>();
-            //services.AddScoped<IUserRepository, UserRepository>();
-            //services.AddScoped<IFamilyRepository, FamilyRepository>();
-            //services.AddScoped<IJWTService, JWTService>();
+            services.AddScoped<IWallRepository, WallRepository>();
             #endregion
 
             #region Common Layer

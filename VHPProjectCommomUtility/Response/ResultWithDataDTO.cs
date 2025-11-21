@@ -1,6 +1,6 @@
 ﻿namespace VHPProjectCommonUtility.Response
 {
-    public class ResultWithDataDTO<T> : ResultDTO
+    public class ResultWithDataDTO<T> : ResultWithDataDTO
     {
         public T? Data { get; set; }
         public int CurrentPage { get; set; }

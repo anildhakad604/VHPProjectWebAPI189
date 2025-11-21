@@ -1,10 +1,10 @@
 ﻿using VHPProjectBAL.Services.OTP;
-using VHPProjectDAL.Repository.OTPRepo;
+using VHPProjectDAL.OTPRepo;
 using VHPProjectDTOModel.OTPDTO.response;
 
 namespace VHPProjectBAL.OTPService
 {
-    public class OTPService:IOTPService
+    public class OTPService : IOTPService
     {
         private readonly IOTPRepository _otpRepository;
 

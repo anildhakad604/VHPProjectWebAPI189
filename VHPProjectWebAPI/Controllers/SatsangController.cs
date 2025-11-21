@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using VHPProjectBAL.Services.SatsangService;
 using VHPProjectDTOModel.SatsangDTO.request;
@@ -21,7 +20,7 @@ namespace VHPProjectWebAPI.Controllers
 
         [HttpPost("AddSatsang")]
         [Authorize(Policy = Policies.AddSatsang)]
-        
+
         public async Task<IActionResult> AddSatsang([FromBody] AddSatsangRequest_DTO request)
         {
             if (request == null)

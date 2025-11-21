@@ -1,6 +1,6 @@
 ﻿namespace VHPProjectCommonUtility.Response
 {
-    public class ResultDTO
+    public class ResultWithDataDTO
     {
         public string Message { get; set; }
         public List<string> ValidationMessages { get; set; } = new List<string>();

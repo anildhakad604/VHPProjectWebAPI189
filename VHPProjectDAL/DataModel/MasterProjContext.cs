@@ -20,6 +20,8 @@ public partial class MasterProjContext : DbContext
 
     public virtual DbSet<Member> Member { get; set; }
 
+    public virtual DbSet<MemberDetails> MemberDetails { get; set; }
+
     public virtual DbSet<Refreshtoken> Refreshtoken { get; set; }
 
     public virtual DbSet<Satsang> Satsang { get; set; }
@@ -27,6 +29,14 @@ public partial class MasterProjContext : DbContext
     public virtual DbSet<Talukamaster> Talukamaster { get; set; }
 
     public virtual DbSet<Villagemaster> Villagemaster { get; set; }
+
+    public virtual DbSet<Wall> Wall { get; set; }
+
+    public virtual DbSet<WallPostComments> WallPostComments { get; set; }
+
+    public virtual DbSet<WallPostImages> WallPostImages { get; set; }
+
+    public virtual DbSet<WallPostLike> WallPostLike { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
@@ -62,9 +72,11 @@ public partial class MasterProjContext : DbContext
 
             entity.HasIndex(e => e.VillageMasterId, "FK_Member_Village");
 
-            entity.Property(e => e.CreatedAt).HasColumnType("datetime");
-            entity.Property(e => e.FirstName).HasMaxLength(50);
-            entity.Property(e => e.LastName).HasMaxLength(50);
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime");
+            entity.Property(e => e.FirstName).HasMaxLength(100);
+            entity.Property(e => e.LastName).HasMaxLength(100);
             entity.Property(e => e.MobileNumber).HasMaxLength(15);
 
             entity.HasOne(d => d.TalukaMaster).WithMany(p => p.Member)
@@ -74,6 +86,33 @@ public partial class MasterProjContext : DbContext
             entity.HasOne(d => d.VillageMaster).WithMany(p => p.Member)
                 .HasForeignKey(d => d.VillageMasterId)
                 .HasConstraintName("FK_Member_Village");
+        });
+
+        modelBuilder.Entity<MemberDetails>(entity =>
+        {
+            entity.HasKey(e => e.IdMember).HasName("PRIMARY");
+
+            entity.ToTable("member_details");
+
+            entity.Property(e => e.IdMember).HasColumnName("id_member");
+            entity.Property(e => e.Active)
+                .HasColumnType("bit(2)")
+                .HasColumnName("active");
+            entity.Property(e => e.CreatedDate)
+                .HasColumnType("datetime")
+                .HasColumnName("created_date");
+            entity.Property(e => e.EmailId)
+                .HasMaxLength(255)
+                .HasColumnName("email_id");
+            entity.Property(e => e.FirstName)
+                .HasMaxLength(255)
+                .HasColumnName("first_name");
+            entity.Property(e => e.LastName)
+                .HasMaxLength(255)
+                .HasColumnName("last_name");
+            entity.Property(e => e.MobileNumber)
+                .HasMaxLength(20)
+                .HasColumnName("mobile_number");
         });
 
         modelBuilder.Entity<Refreshtoken>(entity =>
@@ -143,12 +182,10 @@ public partial class MasterProjContext : DbContext
 
             entity.ToTable("talukamaster");
 
-            entity.HasIndex(e => new { e.IsActive, e.TalukaName }, "IX_Taluka_IsActive_Name");
-
             entity.Property(e => e.IsActive)
                 .IsRequired()
                 .HasDefaultValueSql("'1'");
-            entity.Property(e => e.TalukaName).HasMaxLength(200);
+            entity.Property(e => e.TalukaName).HasMaxLength(100);
         });
 
         modelBuilder.Entity<Villagemaster>(entity =>
@@ -157,19 +194,135 @@ public partial class MasterProjContext : DbContext
 
             entity.ToTable("villagemaster");
 
-            entity.HasIndex(e => new { e.IsActive, e.VillageName }, "IX_Village_IsActive_Name");
-
-            entity.HasIndex(e => e.TalukaMasterId, "IX_Village_Taluka");
+            entity.HasIndex(e => e.TalukaMasterId, "TalukaMasterId");
 
             entity.Property(e => e.IsActive)
                 .IsRequired()
                 .HasDefaultValueSql("'1'");
-            entity.Property(e => e.VillageName).HasMaxLength(200);
+            entity.Property(e => e.VillageName).HasMaxLength(100);
 
             entity.HasOne(d => d.TalukaMaster).WithMany(p => p.Villagemaster)
                 .HasForeignKey(d => d.TalukaMasterId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("villagemaster_ibfk_1");
+        });
+
+        modelBuilder.Entity<Wall>(entity =>
+        {
+            entity.HasKey(e => e.IdWall).HasName("PRIMARY");
+
+            entity.ToTable("wall");
+
+            entity.HasIndex(e => e.MemberDetailsId, "member_details_id");
+
+            entity.Property(e => e.IdWall).HasColumnName("id_wall");
+            entity.Property(e => e.Active)
+                .HasColumnType("bit(2)")
+                .HasColumnName("active");
+            entity.Property(e => e.CreatedDate)
+                .HasColumnType("datetime")
+                .HasColumnName("created_date");
+            entity.Property(e => e.MemberDetailsId).HasColumnName("member_details_id");
+            entity.Property(e => e.PostMessages)
+                .HasMaxLength(255)
+                .HasColumnName("post_messages");
+
+            entity.HasOne(d => d.MemberDetails).WithMany(p => p.Wall)
+                .HasForeignKey(d => d.MemberDetailsId)
+                .HasConstraintName("wall_ibfk_1");
+        });
+
+        modelBuilder.Entity<WallPostComments>(entity =>
+        {
+            entity.HasKey(e => e.IdwallPostComments).HasName("PRIMARY");
+
+            entity.ToTable("wall_post_comments");
+
+            entity.HasIndex(e => e.MemberDetailsId, "member_details_id");
+
+            entity.HasIndex(e => e.WallId, "wall_id");
+
+            entity.Property(e => e.IdwallPostComments).HasColumnName("idwall_post_comments");
+            entity.Property(e => e.Active)
+                .HasColumnType("bit(2)")
+                .HasColumnName("active");
+            entity.Property(e => e.CommentText)
+                .HasMaxLength(255)
+                .HasColumnName("comment_text");
+            entity.Property(e => e.CreatedDate)
+                .HasColumnType("datetime")
+                .HasColumnName("created_date");
+            entity.Property(e => e.InsertDateTime)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp")
+                .HasColumnName("insert_date_time");
+            entity.Property(e => e.MemberDetailsId).HasColumnName("member_details_id");
+            entity.Property(e => e.WallId).HasColumnName("wall_id");
+
+            entity.HasOne(d => d.MemberDetails).WithMany(p => p.WallPostComments)
+                .HasForeignKey(d => d.MemberDetailsId)
+                .HasConstraintName("wall_post_comments_ibfk_1");
+
+            entity.HasOne(d => d.Wall).WithMany(p => p.WallPostComments)
+                .HasForeignKey(d => d.WallId)
+                .HasConstraintName("wall_post_comments_ibfk_2");
+        });
+
+        modelBuilder.Entity<WallPostImages>(entity =>
+        {
+            entity.HasKey(e => e.IdwallPostImages).HasName("PRIMARY");
+
+            entity.ToTable("wall_post_images");
+
+            entity.HasIndex(e => e.WallId, "wall_id");
+
+            entity.Property(e => e.IdwallPostImages).HasColumnName("idwall_post_images");
+            entity.Property(e => e.Active)
+                .HasColumnType("bit(2)")
+                .HasColumnName("active");
+            entity.Property(e => e.CreatedDate)
+                .HasColumnType("datetime")
+                .HasColumnName("created_date");
+            entity.Property(e => e.ImageUrl)
+                .HasMaxLength(1500)
+                .HasColumnName("image_url");
+            entity.Property(e => e.WallId).HasColumnName("wall_id");
+
+            entity.HasOne(d => d.Wall).WithMany(p => p.WallPostImages)
+                .HasForeignKey(d => d.WallId)
+                .HasConstraintName("wall_post_images_ibfk_1");
+        });
+
+        modelBuilder.Entity<WallPostLike>(entity =>
+        {
+            entity.HasKey(e => e.IdwallPostLike).HasName("PRIMARY");
+
+            entity.ToTable("wall_post_like");
+
+            entity.HasIndex(e => new { e.MemberDetailsId, e.WallId }, "unique_like").IsUnique();
+
+            entity.HasIndex(e => e.WallId, "wall_id");
+
+            entity.Property(e => e.IdwallPostLike).HasColumnName("idwall_post_like");
+            entity.Property(e => e.Active)
+                .HasColumnType("bit(2)")
+                .HasColumnName("active");
+            entity.Property(e => e.CreatedDate)
+                .HasColumnType("datetime")
+                .HasColumnName("created_date");
+            entity.Property(e => e.Like)
+                .HasColumnType("bit(1)")
+                .HasColumnName("like");
+            entity.Property(e => e.MemberDetailsId).HasColumnName("member_details_id");
+            entity.Property(e => e.WallId).HasColumnName("wall_id");
+
+            entity.HasOne(d => d.MemberDetails).WithMany(p => p.WallPostLike)
+                .HasForeignKey(d => d.MemberDetailsId)
+                .HasConstraintName("wall_post_like_ibfk_1");
+
+            entity.HasOne(d => d.Wall).WithMany(p => p.WallPostLike)
+                .HasForeignKey(d => d.WallId)
+                .HasConstraintName("wall_post_like_ibfk_2");
         });
 
         OnModelCreatingPartial(modelBuilder);
