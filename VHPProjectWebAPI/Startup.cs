@@ -187,17 +187,25 @@ namespace VHPProjectWebAPI
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddCors();
+            services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAngularDevClient", builder =>
+                {
+                    builder.WithOrigins("http://localhost:4200", "http://localhost:53090")
+                            .AllowAnyHeader()
+                            .AllowAnyMethod()
+                            .AllowCredentials();
+                });
+            });
+
             services.AddControllers().AddNewtonsoftJson();
 
-            // Register HttpContextAccessor once
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
 
             services.AddAutoMapper(typeof(MapperProfileDeclaration));
 
 
-            // Register FileStorageSettings (fixes DI error)
             var fileStorageConfig = new FileStorageSettings();
             Configuration.GetSection("FileStorageSettings").Bind(fileStorageConfig);
             services.AddSingleton(fileStorageConfig);
@@ -208,7 +216,6 @@ namespace VHPProjectWebAPI
                 options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
             });
 
-            // Swagger configuration (only once)
             services.AddSwaggerGen(options =>
             {
                 options.SwaggerDoc("v1", new OpenApiInfo
@@ -217,7 +224,7 @@ namespace VHPProjectWebAPI
                     Version = "v1"
                 });
 
-                // JWT Token scheme
+             
                 var jwtSecurityScheme = new OpenApiSecurityScheme
                 {
                     BearerFormat = "JWT",
@@ -264,16 +271,16 @@ namespace VHPProjectWebAPI
 
             IdentityModelEventSource.ShowPII = true;
 
-            // Load app settings
+          
             AppsettingsConfig appSettings = LoadConfiguration(services);
             _appSettings = appSettings;
 
-            // Configure services/repositories
+            
             var serviceRegistry = new ServiceRegistry();
             serviceRegistry.ConfigureDataContext(services, appSettings);
             serviceRegistry.ConfigureDependencies(services, appSettings);
 
-            // Authentication
+         
             services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -301,7 +308,6 @@ namespace VHPProjectWebAPI
         }
 
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public async void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             var envr = Configuration["MasterProjData:Environment"];
@@ -316,6 +322,7 @@ namespace VHPProjectWebAPI
             app.UseStaticFiles();
 
             app.UseRouting();
+           
             app.UseStatusCodePages(context =>
             {
                 var response = context.HttpContext.Response;
@@ -338,6 +345,7 @@ namespace VHPProjectWebAPI
                 return Task.CompletedTask;
             });
             app.UseMiddleware<GlobalExceptionMiddleware>();
+            app.UseCors("AllowAngularDevClient");
             app.UseAuthentication();
             app.UseAuthorization();
             app.UseEndpoints(endpoints =>

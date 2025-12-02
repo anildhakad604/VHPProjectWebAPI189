@@ -1,5 +1,6 @@
 ﻿using VHPProjectBAL.OTPService;
 using VHPProjectBAL.Services.Designation;
+using VHPProjectBAL.Services.Login;
 using VHPProjectBAL.Services.Members;
 using VHPProjectBAL.Services.OTP;
 using VHPProjectBAL.Services.SatsangService;
@@ -11,6 +12,7 @@ using VHPProjectCommonUtility.Configuration;
 using VHPProjectCommonUtility.Encryption;
 using VHPProjectCommonUtility.Logger;
 using VHPProjectDAL.DesignationRepo;
+using VHPProjectDAL.LoginRepo;
 using VHPProjectDAL.MemberRepo;
 using VHPProjectDAL.OTPRepo;
 using VHPProjectDAL.SatsangRepo;
@@ -35,6 +37,7 @@ namespace VHPProjectDAL.Helper
             services.AddScoped<IMemberService, MemberService>();
             services.AddScoped<IExcelService, ExcelService>();
             services.AddScoped<IWallService, WallService>();
+            services.AddScoped<ILoginService, LoginService>();
             #endregion
 
             #region Data Access Layer
@@ -46,6 +49,7 @@ namespace VHPProjectDAL.Helper
             services.AddScoped<ITalukaRepository, TalukaRepository>();
             services.AddScoped<IMemberRepository, MemberRepository>();
             services.AddScoped<IWallRepository, WallRepository>();
+            services.AddScoped<ILoginRepository, LoginRepository>();
             #endregion
 
             #region Common Layer

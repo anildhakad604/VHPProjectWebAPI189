@@ -18,6 +18,8 @@ public partial class MasterProjContext : DbContext
 
     public virtual DbSet<Designation> Designation { get; set; }
 
+    public virtual DbSet<Login> Login { get; set; }
+
     public virtual DbSet<Member> Member { get; set; }
 
     public virtual DbSet<MemberDetails> MemberDetails { get; set; }
@@ -27,6 +29,8 @@ public partial class MasterProjContext : DbContext
     public virtual DbSet<Satsang> Satsang { get; set; }
 
     public virtual DbSet<Talukamaster> Talukamaster { get; set; }
+
+    public virtual DbSet<Userotp> Userotp { get; set; }
 
     public virtual DbSet<Villagemaster> Villagemaster { get; set; }
 
@@ -60,6 +64,20 @@ public partial class MasterProjContext : DbContext
             entity.Property(e => e.IsActive)
                 .IsRequired()
                 .HasDefaultValueSql("'1'");
+        });
+
+        modelBuilder.Entity<Login>(entity =>
+        {
+            entity.HasKey(e => e.IdLogin).HasName("PRIMARY");
+
+            entity.ToTable("login");
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime");
+            entity.Property(e => e.MobileNumber).HasMaxLength(15);
+            entity.Property(e => e.Password).HasMaxLength(255);
+            entity.Property(e => e.UserName).HasMaxLength(100);
         });
 
         modelBuilder.Entity<Member>(entity =>
@@ -186,6 +204,17 @@ public partial class MasterProjContext : DbContext
                 .IsRequired()
                 .HasDefaultValueSql("'1'");
             entity.Property(e => e.TalukaName).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<Userotp>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity.ToTable("userotp");
+
+            entity.Property(e => e.ExpireAt).HasColumnType("datetime");
+            entity.Property(e => e.MobileNumber).HasMaxLength(15);
+            entity.Property(e => e.OtpCode).HasMaxLength(10);
         });
 
         modelBuilder.Entity<Villagemaster>(entity =>
