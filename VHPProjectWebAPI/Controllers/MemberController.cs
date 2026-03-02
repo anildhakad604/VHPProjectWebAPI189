@@ -5,7 +5,6 @@ using VHPProjectCommonUtility.Logger;
 using VHPProjectCommonUtility.Response;
 using VHPProjectDTOModel.MemberDTO.request;
 using VHPProjectDTOModel.MemberDTO.responses;
-using VHPProjectWebAPI.Helper.Authorization;
 
 namespace VHPProjectWebAPI.Controllers
 {
@@ -101,7 +100,7 @@ namespace VHPProjectWebAPI.Controllers
 
 
 
-        [Authorize]
+        
         [HttpGet("GetMemberDetails")]
         public async Task<IActionResult> GetMemberDetailsAsync()
         {
@@ -129,39 +128,9 @@ namespace VHPProjectWebAPI.Controllers
         }
 
 
-        [HttpPost("AddMember")]
-        [Authorize(Policy = Policies.AddMember)]
+        
 
-        public IActionResult AddMember([FromBody] AddMemberRequestDTO request)
-        {
-            var result = _memberService.AddMember(request);
-            return Ok(result);
-        }
-
-        [HttpGet("{memberId}")]
-        public IActionResult GetMember([FromRoute] int memberId)
-        {
-            var result = _memberService.GetMember(memberId);
-            return Ok(result);
-        }
-
-        [HttpPut("UpdateMember")]
-        [Authorize(Policy = Policies.UpdateMember)]
-
-        public IActionResult UpdateMember([FromBody] UpdateMemberRequestDTO request)
-        {
-            var result = _memberService.UpdateMember(request);
-            return Ok(result);
-        }
-
-        [HttpDelete("DeleteMember/{id}")]
-        [Authorize(Policy = Policies.DeleteMember)]
-
-        public IActionResult DeleteMember([FromBody] GetOrDeleteMemberRequestDTO request)
-        {
-            var result = _memberService.DeleteMember(request.MemberId);
-            return Ok(result);
-        }
+        
 
 
         [HttpPost("UploadMemberExcel")]

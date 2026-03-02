@@ -8,7 +8,8 @@ namespace VHPProjectDTOModel.LoginDTO.request
 {
     public class OtpVerifyRequest
     {
-        public string MobileNumber { get; set; }
-        public string Otp { get; set; }
+        public string MobileNumber { get; set; } = string.Empty;
+        public string OtpCode { get; set; } = string.Empty;
     }
+
 }

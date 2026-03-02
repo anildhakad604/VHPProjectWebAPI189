@@ -14,6 +14,7 @@ namespace VHPProjectDAL.LoginRepo
             _context = context;
             _logger = logger;
         }
+
         public async Task AddAsync(Login user)
         {
             try
@@ -33,8 +34,9 @@ namespace VHPProjectDAL.LoginRepo
         {
             try
             {
+                mobileNumber = mobileNumber.Trim();
                 return await _context.Login
-                    .FirstOrDefaultAsync(u => u.MobileNumber == mobileNumber);
+                    .FirstOrDefaultAsync(u => u.MobileNumber.Trim() == mobileNumber);
             }
             catch (Exception ex)
             {
@@ -56,12 +58,19 @@ namespace VHPProjectDAL.LoginRepo
             }
         }
 
-        public async Task<Userotp> GetOtpAsync(string mobile)
+        public async Task<Userotp?> GetOtpAsync(string mobile)
         {
+
+            if (string.IsNullOrWhiteSpace(mobile))
+                return null;
+
             try
             {
+                mobile = mobile.Trim();
+
                 return await _context.Userotp
-                    .Where(x => x.MobileNumber == mobile)
+                    .AsNoTracking()
+                    .Where(x => x.MobileNumber.Trim() == mobile)
                     .OrderByDescending(x => x.Id)
                     .FirstOrDefaultAsync();
             }
@@ -96,6 +105,8 @@ namespace VHPProjectDAL.LoginRepo
         {
             try
             {
+                mobile = mobile.Trim();
+
                 var userOtp = new Userotp
                 {
                     MobileNumber = mobile,
@@ -132,10 +143,9 @@ namespace VHPProjectDAL.LoginRepo
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error in UpdatePasswordAsyncByUserName: {ex.Message}");
+                _logger.LogError($"Error in UpdatePasswordAsync: {ex.Message}");
                 throw;
             }
         }
-
     }
 }

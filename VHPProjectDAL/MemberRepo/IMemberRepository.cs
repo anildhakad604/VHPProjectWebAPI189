@@ -24,12 +24,12 @@ namespace VHPProjectDAL.MemberRepo
 
         void AddMember(Member member);
         void UpdateMember(Member member);
-        Member GetMember(int memberId);
+       
         void DeleteMember(Member member);
 
         bool IsMobileUnique(string mobileNumber, int? memberId = null);
 
-        //Task SaveChangesAsync();
+      
 
 
     }

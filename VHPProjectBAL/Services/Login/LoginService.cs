@@ -24,25 +24,33 @@ namespace VHPProjectBAL.Services.Login
             _logger = logger;
         }
 
+        private string CleanMobile(string mobile)
+        {
+            if (string.IsNullOrWhiteSpace(mobile))
+                return string.Empty;
+
+            return mobile.Replace("+91", "").Replace(" ", "").Trim();
+        }
+
         public async Task<ResultWithDataDTO<string>> ForgotPasswordAsync(ForgotPasswordRequest request)
         {
-            var user = await _repo.GetByMobileAsync(request.MobileNumber);
+            string cleanMobile = CleanMobile(request.MobileNumber);
+            var user = await _repo.GetByMobileAsync(cleanMobile);
+
             if (user == null)
+            {
                 return new ResultWithDataDTO<string>()
                 {
                     IsSuccessful = false,
                     Message = "Mobile number not found"
                 };
+            }
 
-           
-            string mobileWithCountryCode = request.MobileNumber.StartsWith("+")
-                ? request.MobileNumber
-                : "+91" + request.MobileNumber;
-
+            string mobileForSms = "+91" + cleanMobile;
             string otp = new Random().Next(100000, 999999).ToString();
             DateTime expireAt = DateTime.Now.AddMinutes(int.Parse(_config["MSG91:OtpExpiry"]));
 
-            await _repo.SaveOtpAsync(mobileWithCountryCode, otp, expireAt);
+            await _repo.SaveOtpAsync(cleanMobile, otp, expireAt);
 
             try
             {
@@ -52,23 +60,21 @@ namespace VHPProjectBAL.Services.Login
                 var payload = new
                 {
                     template_id = _config["MSG91:TemplateId"],
-                    mobile = mobileWithCountryCode,
+                    mobile = mobileForSms,
                     otp = otp
                 };
 
                 var response = await client.PostAsJsonAsync(_config["MSG91:BaseUrl"], payload);
                 response.EnsureSuccessStatusCode();
 
-                _logger.LogInfo($"OTP for {mobileWithCountryCode} generated and sent via MSG91.");
                 return new ResultWithDataDTO<string>()
                 {
                     IsSuccessful = true,
                     Message = "OTP has been sent to your mobile number"
                 };
             }
-            catch (Exception ex)
+            catch
             {
-                _logger.LogError($"Error sending OTP via MSG91: {ex.Message}");
                 return new ResultWithDataDTO<string>()
                 {
                     IsSuccessful = false,
@@ -76,7 +82,6 @@ namespace VHPProjectBAL.Services.Login
                 };
             }
         }
-
 
         public async Task<ResultWithDataDTO<string>> LoginAsync(LoginRequest request)
         {
@@ -90,16 +95,15 @@ namespace VHPProjectBAL.Services.Login
                 {
                     result.IsSuccessful = false;
                     result.Message = "User not found";
-                    _logger.LogWarn($"Login failed. Username: {request.UserName} not found.");
                     return result;
                 }
 
                 bool valid = BCrypt.Net.BCrypt.Verify(request.Password, user.Password);
+
                 if (!valid)
                 {
                     result.IsSuccessful = false;
                     result.Message = "Invalid password";
-                    _logger.LogWarn($"Login failed. Invalid password for user: {request.UserName}");
                     return result;
                 }
 
@@ -109,12 +113,10 @@ namespace VHPProjectBAL.Services.Login
                 result.Message = "Login successful";
                 result.Data = token;
 
-                _logger.LogInfo($"User {request.UserName} logged in successfully.");
                 return result;
             }
-            catch (Exception ex)
+            catch
             {
-                _logger.LogError($"Exception in LoginAsync: {ex.Message}");
                 result.IsSuccessful = false;
                 result.Message = "An error occurred during login.";
                 return result;
@@ -123,35 +125,35 @@ namespace VHPProjectBAL.Services.Login
 
         public async Task<ResultWithDataDTO<string>> RegisterAsync(RegisterRequest request)
         {
-            var result = new ResultWithDataDTO<string>();
-
             try
             {
+                string cleanMobile = CleanMobile(request.MobileNumber);
                 var hashed = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
                 var user = new VHPProjectDAL.DataModel.Login
                 {
                     UserName = request.UserName,
                     Password = hashed,
-                    MobileNumber = request.MobileNumber,
+                    MobileNumber = cleanMobile,
                     CreatedAt = DateTime.Now
                 };
 
                 await _repo.AddAsync(user);
 
-                result.IsSuccessful = true;
-                result.Message = "User registered successfully";
-                result.Data = user.UserName;
-
-                _logger.LogInfo($"User {request.UserName} registered successfully.");
-                return result;
+                return new ResultWithDataDTO<string>()
+                {
+                    IsSuccessful = true,
+                    Message = "User registered successfully",
+                    Data = user.UserName
+                };
             }
-            catch (Exception ex)
+            catch
             {
-                _logger.LogError($"Exception in RegisterAsync: {ex.Message}");
-                result.IsSuccessful = false;
-                result.Message = "An error occurred during registration.";
-                return result;
+                return new ResultWithDataDTO<string>()
+                {
+                    IsSuccessful = false,
+                    Message = "An error occurred during registration."
+                };
             }
         }
 
@@ -160,11 +162,13 @@ namespace VHPProjectBAL.Services.Login
             var user = await _repo.GetByUserNameAsync(request.UserName);
 
             if (user == null)
+            {
                 return new ResultWithDataDTO<string>()
                 {
                     IsSuccessful = false,
                     Message = "User not found"
                 };
+            }
 
             string hashed = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
             await _repo.UpdatePasswordAsync(user.UserName, hashed);
@@ -176,38 +180,94 @@ namespace VHPProjectBAL.Services.Login
             };
         }
 
-
-
         public async Task<ResultWithDataDTO<string>> VerifyOtpAsync(OtpVerifyRequest request)
         {
-            string mobileWithCountryCode = request.MobileNumber.StartsWith("+")
-                ? request.MobileNumber
-                : "+91" + request.MobileNumber;
+            if (request == null || string.IsNullOrWhiteSpace(request.MobileNumber) || string.IsNullOrWhiteSpace(request.OtpCode))
+            {
+                return new ResultWithDataDTO<string>
+                {
+                    IsSuccessful = false,
+                    Message = "Invalid request"
+                };
+            }
 
-            var otpData = await _repo.GetOtpAsync(mobileWithCountryCode);
+            try
+            {
+        string cleanMobile = CleanMobile(request.MobileNumber);
 
-            if (otpData == null || otpData.OtpCode != request.Otp)
-                return new ResultWithDataDTO<string>() { IsSuccessful = false, Message = "Invalid OTP" };
+        var otpData = await _repo.GetOtpAsync(cleanMobile);
 
-            if (otpData.ExpireAt < DateTime.Now)
-                return new ResultWithDataDTO<string>() { IsSuccessful = false, Message = "OTP expired" };
-
-            await _repo.MarkOtpVerifiedAsync(otpData.Id);
-
-            return new ResultWithDataDTO<string>() { IsSuccessful = true, Message = "OTP verified" };
+        if (otpData == null)
+        {
+            return new ResultWithDataDTO<string>
+            {
+                IsSuccessful = false,
+                Message = "OTP not found or expired"
+            };
         }
+        if (otpData.IsVerified)
+        {
+            return new ResultWithDataDTO<string>
+            {
+                IsSuccessful = false,
+                Message = "OTP already used"
+            };
+        }
+        if (otpData.ExpireAt <= DateTime.UtcNow)
+        {
+            return new ResultWithDataDTO<string>
+            {
+                IsSuccessful = false,
+                Message = "OTP expired"
+            };
+        }
+        if (!string.Equals(otpData.OtpCode?.Trim(), request.OtpCode.Trim(), StringComparison.Ordinal))
+        {
+            return new ResultWithDataDTO<string>
+            {
+                IsSuccessful = false,
+                Message = "Invalid OTP"
+            };
+        }
+        await _repo.MarkOtpVerifiedAsync(otpData.Id);
+
+        return new ResultWithDataDTO<string>
+        {
+            IsSuccessful = true,
+            Message = "OTP verified successfully",
+            Data = cleanMobile
+        };
+    }
+
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    $"Error verifying OTP for mobile {request?.MobileNumber}",
+                    ex
+                );
+
+                return new ResultWithDataDTO<string>
+                {
+                    IsSuccessful = false,
+                    Message = "An internal error occurred"
+                };
+            }
+
+
+
+        }
+
+
 
         private string GenerateJwtToken(VHPProjectDAL.DataModel.Login user)
         {
             var claims = new[]
             {
                 new Claim(ClaimTypes.Name, user.UserName),
-                new Claim("UserId", user.IdLogin.ToString())
+                new Claim("UserId", user.IdLogin.ToString()),
             };
 
-            var key = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
-
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(

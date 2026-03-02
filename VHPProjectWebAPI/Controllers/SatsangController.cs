@@ -19,7 +19,7 @@ namespace VHPProjectWebAPI.Controllers
 
 
         [HttpPost("AddSatsang")]
-        [Authorize(Policy = Policies.AddSatsang)]
+       
 
         public async Task<IActionResult> AddSatsang([FromBody] AddSatsangRequest_DTO request)
         {
